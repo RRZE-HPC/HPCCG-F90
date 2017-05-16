@@ -1,0 +1,12 @@
+This is a Fortran 90 port of the Mantevo HPCCG SpMVM benchmark.
+
+You find the original (C++) implementation here:
+
+https://mantevo.org/download.php
+
+There are three different variants:
+
+MPI  Contains a OpenMP/MPI/MPI+OpenMP implementation
+CAF-V1  Contains a naive CoArray Fortran implementation (optional use MPI for collectives)
+CAF-V2  Contains a MPI like CoArray Fortran implementation (optional use MPI for collectives)
+

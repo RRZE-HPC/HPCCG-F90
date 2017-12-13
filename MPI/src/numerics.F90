@@ -33,15 +33,15 @@
 #include <timer.h>
 
 module numerics
+    use constants
+#ifdef _MPI
+    use mpi
+#endif
 contains
     subroutine cg(A, b, x, max_iter, tolerance, niters, normr)
-        use constants
         use SparseMatrix
         use vector_operations
         use timer
-#ifdef _MPI
-        use mpi
-#endif
 
         implicit none
         type(SparseMatrixT), intent(inout) :: A
@@ -172,6 +172,7 @@ contains
         real(kind=dp), intent(out) :: residual
 #ifdef _MPI
         real(kind=dp) :: global_residual
+        integer :: ierror
 #endif
         real(kind=dp) :: local_residual = 0.0d0
         real(kind=dp) :: diff

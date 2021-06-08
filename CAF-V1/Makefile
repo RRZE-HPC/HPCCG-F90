@@ -34,25 +34,23 @@ include config.mk
 
 export COMPILER = $(strip $(TOOLCHAIN))
 
+#CONFIGURE BUILD SYSTEM
+TARGET = HPCCG-$(COMPILER)
+BUILD_DIR  = ./$(COMPILER)
 SRC_DIR    = ./src
 MAKE_DIR   = ./make
+Q         ?= @
 
 #DO NOT EDIT BELOW
-
-TARGET = HPCCG-$(COMPILER)
-
+include config.mk
 include $(MAKE_DIR)/include_$(COMPILER).mk
+INCLUDES  += -I$(BUILD_DIR)/ -I./includes
 
-BUILD_DIR  = ./$(COMPILER)
-Q         ?= @
 VPATH     = $(SRC_DIR)
 SRC       = $(wildcard $(SRC_DIR)/*.F90)
 OBJ       = $(patsubst $(SRC_DIR)/%.F90, $(BUILD_DIR)/%.o,$(wildcard $(SRC_DIR)/*.F90))
 OBJ       += $(patsubst $(SRC_DIR)/%.c, $(BUILD_DIR)/%.o,$(wildcard $(SRC_DIR)/*.c))
-INCLUDES  += -I$(BUILD_DIR)/ -I./includes
-
-LIBS :=  $(LIBS)
-CPPFLAGS += $(INCLUDES) $(DEFINES)
+CPPFLAGS := $(INCLUDES) $(DEFINES) $(DEFINES)
 
 ifeq ($(strip $(ENABLE_MPI)),YES)
 FC = $(MPIFC)
@@ -71,33 +69,43 @@ endif
 
 DEFINES += -DTIMINGLEV=$(strip $(TIMER_LEVEL))
 
-all:  $(TARGET)
-
 $(TARGET): $(BUILD_DIR) $(OBJ)
-	@echo "===>  LINK  $@"
+	$(info ===>  LINKING  $(TARGET))
 	$(Q)$(FC)  $(CPPFLAGS) $(FCFLAGS) -o $@ $(OBJ) $(LIBS)
+
+$(BUILD_DIR)/%.o:  %.F90
+	$(info ===>  COMPILE  $@)
+	$(Q)$(FC) -c  $(CPPFLAGS)  $(FCFLAGS) $< -o $@
+
+$(BUILD_DIR)/%.o:  %.c
+	$(info ===>  COMPILE  $@)
+	$(Q)$(CC) -c  $(CPPFLAGS)  $(CFLAGS) $< -o $@
+
+.PHONY: clean distclean tags info asm
+
+clean:
+	$(info ===>  CLEAN)
+	@rm -rf $(BUILD_DIR)
+	@rm -f tags
+
+distclean: clean
+	$(info ===>  DIST CLEAN)
+	@rm -f $(TARGET)
+
+info:
+	$(info $(FCFLAGS))
+	$(Q)$(FC) $(VERSION)
+
+asm:  $(BUILD_DIR) $(ASM)
+
+tags:
+	$(info ===>  GENERATE TAGS)
+	$(Q)ctags -R
 
 $(BUILD_DIR):
 	@mkdir $(BUILD_DIR)
 
-$(BUILD_DIR)/%.o:  %.F90
-	@echo "===>  COMPILE  $@"
-	$(Q)$(FC) -c  $(CPPFLAGS)  $(FCFLAGS) $< -o $@
+-include $(OBJ:.o=.d)
 
-$(BUILD_DIR)/%.o:  %.c
-	@echo "===>  COMPILE  $@"
-	$(Q)$(CC) -c  $(CPPFLAGS)  $(CFLAGS) $< -o $@
-
-.PHONY: clean distclean
-
-clean:
-	@echo "===>  CLEAN"
-	@rm -rf $(BUILD_DIR)
-
-distclean: clean
-	@echo "===>  DIST CLEAN"
-	@rm -f $(TARGET)
-
-
-include  $(MAKE_DIR)/dep.mk
-
+# Add explicit dependencies for Fortran90 modules
+include $(MAKE_DIR)/dep.mk
